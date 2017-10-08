@@ -35,7 +35,7 @@ class DBWNode(object):
     def __init__(self):
         rospy.init_node('dbw_node')
 
-        self.dbw_enabled = False
+        self.dbw_enabled = True
         self.current_velocity = None
         self.target_velocity = None
 
@@ -63,14 +63,17 @@ class DBWNode(object):
         # TODO: Subscribe to all the topics you need to
         rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb, queue_size=1)
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb, queue_size=1)
-        rospy.Subscriber('/vehicle/dbw_enabled')
-		self.loop()
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_cb)
+        self.loop()
 
     def velocity_cb(self, msg):
         self.current_velocity = msg.twist
     
     def twist_cb(self, msg):
         self.target_velocity = msg.twist
+
+    def dbw_cb(self, msg):
+        self.dbw_enabled = msg.data
 
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
@@ -86,6 +89,7 @@ class DBWNode(object):
             #   self.publish(throttle, brake, steer)
 
             if not self.dbw_enabled:
+                rospy.logwarn("dbw is not enabled")
                 self.controller.reset()
                 rate.sleep()
                 continue

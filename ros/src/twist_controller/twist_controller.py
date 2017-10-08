@@ -14,7 +14,7 @@ class Controller(object):
         self.dt = 0.0
         self.timestamp = time.time()
         self.steer_filter = lowpass.LowPassFilter(tau=0.0, ts=1.0)
-        self.vel_pid = pid.PID(kp=1.3, ki=0.05, kd=1.4, mn=-5, mx=1)
+        self.vel_pid = pid.PID(kp=1.4, ki=0.05, kd=1.6, mn=-5, mx=1)
         self.yaw_controller = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
         self.vehicle_mass = vehicle_mass
         self.brake_deadband = brake_deadband
@@ -27,7 +27,7 @@ class Controller(object):
         angular_velocity = self.steer_filter.filt(angular_velocity)
         steer = self.yaw_controller.get_steering(linear_velocity, angular_velocity, current_velocity) 
         vel_err = linear_velocity - current_velocity
-        cmd = 0
+        cmd = 0.0
         brake = 0.0
         if self.dt:
             cmd = self.vel_pid.step(vel_err, self.dt)
@@ -40,9 +40,13 @@ class Controller(object):
             brake = 0.0
         else:
             throttle = 0.0
-            desired_accel = vel_err / self.dt
-            brake = -self.wheel_radius * self.vehicle_mass * (cmd - self.brake_deadband)
+            desired_neg_accel = vel_err / self.dt
+            brake = -self.wheel_radius * self.vehicle_mass * desired_neg_accel
+            self.vel_pid.reset()
 
 
         rospy.loginfo("steering angle: %s", steer)
         return throttle,brake,steer
+
+    def reset(self):
+        self.vel_pid.reset()
