@@ -41,9 +41,9 @@ class WaypointUpdater(object):
         # TODO: Add other member variables you need below
         self.waypoints = None
         self.pose = None
-        self.max_vel = 20 * ONEMPH
+        self.max_vel = 25 * ONEMPH
         self.dt = 0.1
-        self.min_dist_ahead = self.max_vel * self.dt
+        self.min_dist_ahead = self.max_vel * self.dt * 2
 
         rospy.Timer(rospy.Duration(self.dt), self.loop)
         rospy.spin()
@@ -69,9 +69,8 @@ class WaypointUpdater(object):
                 if(not is_ahead):
                      continue
                 
-                
                 dist = math.sqrt((car_x - wp_x)**2 + (car_y - wp_y)**2)
-                if dist < closest_wp[0]:
+                if dist < closest_wp[0] and dist > self.min_dist_ahead:
                     closest_wp = (dist, i)
             
             idx_begin = closest_wp[1]
@@ -80,20 +79,17 @@ class WaypointUpdater(object):
 
             for i in range(len(wps)):
                 target = self.max_vel
-                swv = wps[0].twist.twist.linear.x
-                pwv = swv if i == 0 else pwv
-                cwv = wps[i].twist.twist.linear.x
+                start_wp_vel = wps[0].twist.twist.linear.x
+                prev_wp_vel = start_wp_vel if i == 0 else prev_wp_vel
+                curr_wp_vel = wps[i].twist.twist.linear.x
                 
-                if swv == 0 and cwv == 0 and pwv ==0:
-                    target = (0.25 * target + 0.75 * pwv)
-                elif pwv < target:
-                    target = (0.1 * target + 0.9 * pwv)
-
-                if target < 4.0:
-                    target = self.max_vel
+                if start_wp_vel == 0 and curr_wp_vel == 0 and prev_wp_vel ==0:
+                    target = (0.25 * target + 0.75 * prev_wp_vel)
+                elif prev_wp_vel < target:
+                    target = (0.1 * target + 0.9 * prev_wp_vel)
 
                 target = min(max(0, target), self.max_vel)
-                pwv = target
+                prev_wp_vel = target
                 wps[i].twist.twist.linear.x = target
             
             lane = Lane()
