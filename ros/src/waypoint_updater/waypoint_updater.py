@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 import rospy
+import math
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
-
-import math
 from tf.transformations import euler_from_quaternion
 
 '''
@@ -43,7 +42,7 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.pose = None
         self.max_vel = 20 * ONEMPH
-        self.dt = 0.11
+        self.dt = 0.1
         self.min_dist_ahead = self.max_vel * self.dt
 
         rospy.Timer(rospy.Duration(self.dt), self.loop)
@@ -80,9 +79,22 @@ class WaypointUpdater(object):
             wps = self.waypoints[idx_begin:idx_end]
 
             for i in range(len(wps)):
-                waypoint_velocity = wps[i].twist.twist.linear.x
-                target_velocity = min(waypoint_velocity, self.max_vel)
-                wps[i].twist.twist.linear.x = target_velocity
+                target = self.max_vel
+                swv = wps[0].twist.twist.linear.x
+                pwv = swv if i == 0 else pwv
+                cwv = wps[i].twist.twist.linear.x
+                
+                if swv == 0 and cwv == 0 and pwv ==0:
+                    target = (0.25 * target + 0.75 * pwv)
+                elif pwv < target:
+                    target = (0.1 * target + 0.9 * pwv)
+
+                if target < 4.0:
+                    target = self.max_vel
+
+                target = min(max(0, target), self.max_vel)
+                pwv = target
+                wps[i].twist.twist.linear.x = target
             
             lane = Lane()
             lane.waypoints = wps
