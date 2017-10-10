@@ -52,26 +52,20 @@ class WaypointUpdater(object):
 
     def loop(self, event):
         if (self.pose is not None and self.waypoints is not None):
-            car_x = self.pose.position.x
-            car_y = self.pose.position.y
-            car_z = self.pose.position.z
-            car_o = self.pose.orientation
+            car_x, car_y = get_car_coord(self.pose)
+
             rospy.loginfo("current pose (%s, %s)", car_x, car_y)
 
-            car_q = (car_o.x, car_o.y, car_o.z, car_o.w)
-            car_roll, car_pitch, car_yaw = euler_from_quaternion(car_q)
+            _,_,car_yaw = get_euler(self.pose)
 
             closest_wp = (float('inf'), -1)
             for i in range(len(self.waypoints)):
                 wp = self.waypoints[i]
-                wp_x = wp.pose.pose.position.x
-                wp_y = wp.pose.pose.position.y
+                wp_x,wp_y = get_waypoint_coord(wp)
 
-                is_ahead = ((wp_x - car_x)*math.cos(car_yaw) + (wp_y - car_y)*math.sin(car_yaw)) > 0.0      
-                if(not is_ahead):
+                if ((wp_x - car_x) * math.cos(car_yaw) + (wp_y - car_y) * math.sin(car_yaw)) < 0:
                      continue
-                
-                dist = math.sqrt((car_x - wp_x)**2 + (car_y - wp_y)**2)
+                dist = self.get_distance((car_x,car_y), (wp_x, wp_y))
                 if dist < closest_wp[0] and dist > self.min_dist_ahead:
                     closest_wp = (dist, i)
             
@@ -91,6 +85,10 @@ class WaypointUpdater(object):
                     target = (0.1 * target + 0.9 * prev_wp_vel)
 
                 target = min(max(0, target), self.max_vel)
+
+                if self.red_light_ahead():
+                    target = 0
+                    
                 prev_wp_vel = target
                 wps[i].twist.twist.linear.x = target
             
@@ -108,7 +106,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        self.traffic_waypoint = msg.data
+        self.red_idx = msg.data
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -119,14 +117,50 @@ class WaypointUpdater(object):
 
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
+    
+    def get_distance(self, xy1, xy2):
+        x1, y1 = xy1
+        x2, y2 = xy2
+        dx, dy = x1 - x2, y1 - y2
+        return math.sqrt(dx*dx + dy*dy)
 
-    def distance(self, waypoints, wp1, wp2):
-        dist = 0
-        dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
-        for i in range(wp1, wp2+1):
-            dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
-            wp1 = i
-        return dist
+    def get_distance_waypoint(self, waypoint, pose):
+        wp_x, wp_y = self.get_waypoint_coord(waypoint)
+        car_x, car_y = self.get_car_coord(pose)
+        dx = wp_x - car_x 
+        dy = wp_y - car_y
+        return math.sqrt(dx*dx + dy*dy)
+
+    def get_car_coord(self, car_pose):
+        car_x = car_pose.position.x 
+        car_y = car_pose.position.y
+        return (car_x, car_y) 
+
+    def get_waypoint_coord(self, waypoint):
+        waypoint_x = waypoint.pose.pose.position.x 
+        waypoint_y = waypoint.pose.pose.position.y
+        return (waypoint_x, waypoint_y) 
+
+    def get_euler(self, pose):
+        o = pose.orientation
+        q = (o.x, o.y, o.z, o.w)
+        return tf.transformations.euler_from_quaternion(q)
+
+    def red_light_ahead(self):
+        if self.traffic_waypoint is None or self.waypoints is None:
+            return False
+        else:
+            wps = self.waypoints
+            red_wp = wps[self.red_idx]
+            d = self.get_distance_waypoint(red_wp, self.pose)
+            red_x, red_y = self.get_waypoint_coord(red_wp)
+            car_x, car_y = self.get_car_coord(self.pose)
+            _,_,car_yaw = self.get_euler(self.pose)
+
+            if ((red_x - car_x) * math.cos(car_yaw) + (red_y - car_y) * math.sin(car_yaw)) > 0 and distance <= 35:
+                return True
+            else:
+                return False
 
 
 if __name__ == '__main__':

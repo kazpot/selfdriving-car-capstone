@@ -207,7 +207,7 @@ class TLDetector(object):
 
         #TODO find the closest visible traffic light (if one exists)        
         light_closest = (float('inf'), -1)
-        if self.pose:
+        if self.pose and self.waypoints:
             for i in range(len(self.lights)):
                 light = self.lights[i]
                 l_x, l_y = self.get_light_coord(light)
