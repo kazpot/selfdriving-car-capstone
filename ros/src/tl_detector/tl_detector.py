@@ -209,7 +209,7 @@ class TLDetector(object):
         light_closest = (float('inf'), -1)
         if self.pose:
             for i in range(len(self.lights)):
-                l = self.lights[i]
+                light = self.lights[i]
                 l_x, l_y = self.get_light_coord(l)
                 car_x, car_y = self.get_car_coord(self.pose)
 
