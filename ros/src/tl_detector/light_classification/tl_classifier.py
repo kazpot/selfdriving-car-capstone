@@ -4,7 +4,9 @@ import numpy as np
 
 class TLClassifier(object):
     def __init__(self):
-        pass
+        self.GREEN_CHANNEL = 1
+        self.RED_CHANNEL = 2
+        self.threshold = 80
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -17,16 +19,18 @@ class TLClassifier(object):
 
         """
         #TODO implement light color prediction
-        averages = image.mean(0).mean(0)
-        blue, green, red = averages
+        red_img = image[:,:,self.RED_CHANNEL]
+        green_img = image[:,:,self.GREEN_CHANNEL]
+        red_area = np.sum(red_img == red_img.max())
+        green_area = np.sum(green_img == green_img.max())
         
         prediction = TrafficLight.UNKNOWN
-
-        if red > blue and red > green:
+        
+        if red_area > self.threshold:
             prediction = TrafficLight.RED
-        elif green > red and green > blue:
+        elif green_area > self.threshold:
             prediction = TrafficLight.GREEN
         else:
             prediction = TrafficLight.UNKNOWN
-
+        
         return prediction
