@@ -52,7 +52,7 @@ class WaypointUpdater(object):
 
     def loop(self, event):
         if (self.pose is not None and self.waypoints is not None):
-            car_x, car_y = get_car_coord(self.pose)
+            car_x, car_y = self.get_car_coord(self.pose)
 
             rospy.loginfo("current pose (%s, %s)", car_x, car_y)
 
