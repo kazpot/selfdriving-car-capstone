@@ -103,8 +103,8 @@ class TLDetector(object):
 
         """
         #TODO implement
-        distances = [self.get_distance(self.get_light_coord(light)), 
-                                       self.get_waypoint_coord(wp) for wp in self.waypoints]
+        distances = [self.get_distance(self.get_light_coord(light), 
+                                       self.get_waypoint_coord(wp)) for wp in self.waypoints]
         return distances.index(min(distances))
 
     def project_to_image_plane(self, point_in_world):
