@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
+import tf
 import rospy
 import math
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
-from tf.transformations import euler_from_quaternion
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
