@@ -10,6 +10,8 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import math
+import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -52,10 +54,10 @@ class TLDetector(object):
         rospy.spin()
 
     def pose_cb(self, msg):
-        self.pose = msg
+        self.pose = msg.pose
 
-    def waypoints_cb(self, waypoints):
-        self.waypoints = waypoints
+    def waypoints_cb(self, lane):
+        self.waypoints = lane.waypoints
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -101,8 +103,32 @@ class TLDetector(object):
 
         """
         #TODO implement
-        return 0
+        x = pose.position.x
+        y = pose.position.y
 
+        closest_wp = (float('inf'), -1)
+        for i in range(len(self.waypoints)):
+            wp = self.waypoints[i]
+            wp_x = wp.pose.pose.position.x
+            wp_y = wp.pose.pose.position.y
+            dist = math.sqrt((x - wp_x)**2 + (y - wp_y)**2)
+            if dist < closest_wp[0]:
+                closest_wp = (dist, i)
+        return closest_wp[1]
+
+    def get_closest_stop_waypoint(self, position):
+        x = position[0]
+        y = position[1]
+
+        closest_wp = (float('inf'), -1)
+        for i in range(len(self.waypoints)):
+            wp = self.waypoints[i]
+            wp_x = wp.pose.pose.position.x
+            wp_y = wp.pose.pose.position.y
+            dist = math.sqrt((x - wp_x)**2 + (y - wp_y)**2)
+            if dist < closest_wp[0]:
+                closest_wp = (dist, i)
+        return closest_wp[1]
 
     def project_to_image_plane(self, point_in_world):
         """Project point from 3D world coordinates to 2D camera image location
@@ -134,9 +160,11 @@ class TLDetector(object):
             rospy.logerr("Failed to find camera to map transform")
 
         #TODO Use tranform and rotation to calculate 2D position of light in image
-
-        x = 0
-        y = 0
+        trans_mat = slf.listner.fromTranslationRotation(trans, rot)
+        pt_world = np.array([[point_in_world.x],[point_in_world.y],[point_in_world.z],[1.0]])
+        cam_vec = np.dot(trans_mat, pt_world)
+        x = cam_vec[0][0]
+        y = cam_vec[1][0]
 
         return (x, y)
 
@@ -174,18 +202,50 @@ class TLDetector(object):
         """
         light = None
 
-        # List of positions that correspond to the line to stop in front of for a given intersection
-        stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
-
         #TODO find the closest visible traffic light (if one exists)
+        if not self.pose or not self.waypoints or not self.lights or not self.light_classifier:
+            return -1, TrafficLight.UNKNOWN
 
-        if light:
-            state = self.get_light_state(light)
-            return light_wp, state
-        self.waypoints = None
-        return -1, TrafficLight.UNKNOWN
+        car_x = self.pose.position.x
+        car_y = self.pose.position.y
+        car_o = self.pose.orientation
+        car_q = (car_o.x, car_o.y, car_o.z, car_o.w)
+        car_roll,car_pitch,car_yaw = tf.transformations.euler_from_quaternion(car_q)
+
+        light_closest = (float('inf'),-1, None)
+        for i in range(len(self.lights)):
+            l = self.lights[i]
+            l_x = l.pose.pose.position.x
+            l_y = l.pose.pose.position.y
+            l_o = l.pose.pose.orientation
+            l_q = (l_o.x, l_o.y, l_o.z, l_o.w)
+            l_roll, l_pitch, l_yaw = tf.transformations.euler_from_quaternion(l_q)
+
+            light_ahead = ((l_x - car_x) * math.cos(car_yaw) + (l_y - car_y) * math.sin(car_yaw)) > 0.0
+            if not light_ahead:
+                continue
+
+            light_distance = math.sqrt((car_x - l_x)**2 + (car_y - l_y)**2)
+            if light_distance < light_closest[1]:
+                light_closest = (light_distance, self.get_closest_waypoint(l.pose.pose), i)
+
+            stop_line_positions = self.config['stop_line_positions']
+            stop_closest = (float('inf'), -1)
+            for sl in stop_line_positions:
+                stop_x = sl[0]
+                stop_y = sl[1]
+                stop_d = math.sqrt((car_x - stop_x)**2 + (car_y - stop_y)**2)
+                if stop_d < stop_closest[0]:
+                    stop_closest = (stop_d,self.get_closest_stop_waypoint(sl))
+
+        if light_closest[0] > 50:
+            return -1,TrafficLight.UNKNOWN
+
+        idx = stop_closest[1]
+        tl_state = self.get_light_state(light_closest[2])
+
+        rospy.loginfo("light state: %s", tl_state)
+        return idx, tl_state
 
 if __name__ == '__main__':
     try:

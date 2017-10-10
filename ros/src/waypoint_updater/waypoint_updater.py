@@ -4,6 +4,7 @@ import rospy
 import math
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 from tf.transformations import euler_from_quaternion
 
 '''
@@ -32,7 +33,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-		#rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 		#rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
 
 
@@ -40,6 +41,7 @@ class WaypointUpdater(object):
 
         # TODO: Add other member variables you need below
         self.waypoints = None
+        self.traffic_waypoint = None
         self.pose = None
         self.max_vel = 25 * ONEMPH
         self.dt = 0.1
@@ -106,7 +108,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        self.traffic_waypoint = msg.data
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
