@@ -1,8 +1,9 @@
 from styx_msgs.msg import TrafficLight
+import cv2
+import numpy as np
 
 class TLClassifier(object):
     def __init__(self):
-        #TODO load classifier
         pass
 
     def get_classification(self, image):
@@ -16,4 +17,16 @@ class TLClassifier(object):
 
         """
         #TODO implement light color prediction
-        return TrafficLight.UNKNOWN
+        averages = image.mean(0).mean(0)
+        blue, green, red = averages
+        
+        prediction = TrafficLight.UNKNOWN
+
+        if red > blue and red > green:
+            prediction = TrafficLight.RED
+        elif green > red and green > blue:
+            prediction = TrafficLight.GREEN
+        else:
+            prediction = TrafficLight.UNKNOWN
+
+        return prediction
