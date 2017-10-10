@@ -1,6 +1,7 @@
 from styx_msgs.msg import TrafficLight
 import cv2
 import numpy as np
+import rospy
 
 class TLClassifier(object):
     def __init__(self):
