@@ -224,7 +224,7 @@ class TLDetector(object):
                 light_index = self.get_closest_waypoint(light)
                 light_wp = self.waypoints[light_index]
                 
-                _,_,car_yaw = get_euler(self.pose)
+                _,_,car_yaw = self.get_euler(self.pose)
                 light_is_ahead = False
                 if ((l_x - car_x) * math.cos(car_yaw) + (l_y - car_y)*math.sin(car_yaw)) > 0:
                     light_is_ahead = True
