@@ -56,12 +56,12 @@ class WaypointUpdater(object):
 
             rospy.loginfo("current pose (%s, %s)", car_x, car_y)
 
-            _,_,car_yaw = get_euler(self.pose)
+            _,_,car_yaw = self.get_euler(self.pose)
 
             closest_wp = (float('inf'), -1)
             for i in range(len(self.waypoints)):
                 wp = self.waypoints[i]
-                wp_x,wp_y = get_waypoint_coord(wp)
+                wp_x,wp_y = self.get_waypoint_coord(wp)
 
                 if ((wp_x - car_x) * math.cos(car_yaw) + (wp_y - car_y) * math.sin(car_yaw)) < 0:
                      continue
