@@ -217,7 +217,7 @@ class TLDetector(object):
                     continue
 
                 light_state = self.get_light_state(light)
-                rospy.loginfo("TrafficLight: %s", light_state)
+
                 if light_state != TrafficLight.RED:
                     continue
 

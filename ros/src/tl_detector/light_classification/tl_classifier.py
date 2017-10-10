@@ -28,8 +28,10 @@ class TLClassifier(object):
         
         if red_area > self.threshold:
             prediction = TrafficLight.RED
+            rospy.loginfo("TrafficLight: RED")
         elif green_area > self.threshold:
             prediction = TrafficLight.GREEN
+            rospy.loginfo("TrafficLight: GREEN")
         else:
             prediction = TrafficLight.UNKNOWN
         
