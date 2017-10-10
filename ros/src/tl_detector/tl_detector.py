@@ -92,7 +92,7 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def get_closest_waypoint(self, pose):
+    def get_closest_waypoint(self, light):
         """Identifies the closest path waypoint to the given position
             https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
         Args:
@@ -103,32 +103,9 @@ class TLDetector(object):
 
         """
         #TODO implement
-        x = pose.position.x
-        y = pose.position.y
-
-        closest_wp = (float('inf'), -1)
-        for i in range(len(self.waypoints)):
-            wp = self.waypoints[i]
-            wp_x = wp.pose.pose.position.x
-            wp_y = wp.pose.pose.position.y
-            dist = math.sqrt((x - wp_x)**2 + (y - wp_y)**2)
-            if dist < closest_wp[0]:
-                closest_wp = (dist, i)
-        return closest_wp[1]
-
-    def get_closest_stop_waypoint(self, position):
-        x = position[0]
-        y = position[1]
-
-        closest_wp = (float('inf'), -1)
-        for i in range(len(self.waypoints)):
-            wp = self.waypoints[i]
-            wp_x = wp.pose.pose.position.x
-            wp_y = wp.pose.pose.position.y
-            dist = math.sqrt((x - wp_x)**2 + (y - wp_y)**2)
-            if dist < closest_wp[0]:
-                closest_wp = (dist, i)
-        return closest_wp[1]
+        distances = [self.get_distance(self.get_light_coord(light)), 
+                                       self.get_waypoint_coord(wp) for wp in self.waypoints]
+        return distances.index(min(distances))
 
     def project_to_image_plane(self, point_in_world):
         """Project point from 3D world coordinates to 2D camera image location
@@ -191,6 +168,32 @@ class TLDetector(object):
         #Get classification
         return self.light_classifier.get_classification(cv_image)
 
+    def get_euler(self, pose):
+        o = pose.orientation
+        q = (o.x, o.y, o.z, o.w)
+        return tf.transformations.euler_from_quaternion(q)
+
+    def get_distance(self, xy1, xy2):
+        x1, y1 = xy1
+        x2, y2 = xy2
+        dx, dy = x1 - x2, y1 - y2
+        return math.sqrt(dx*dx + dy*dy)
+
+    def get_car_coord(self, car_pose):
+        car_x = car_pose.position.x 
+        car_y = car_pose.position.y
+        return (car_x, car_y) 
+
+    def get_light_coord(self, light):
+        light_x = light.pose.pose.position.x 
+        light_y = light.pose.pose.position.y
+        return (light_x, light_y) 
+
+    def get_waypoint_coord(self, waypoint):
+        waypoint_x = waypoint.pose.pose.position.x 
+        waypoint_y = waypoint.pose.pose.position.y
+        return (waypoint_x, waypoint_y) 
+
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
             location and color
@@ -202,50 +205,37 @@ class TLDetector(object):
         """
         light = None
 
-        #TODO find the closest visible traffic light (if one exists)
-        if not self.pose or not self.waypoints or not self.lights or not self.light_classifier:
-            return -1, TrafficLight.UNKNOWN
+        #TODO find the closest visible traffic light (if one exists)        
+        light_closest = (float('inf'), -1)
+        if self.pose:
+            for i in range(len(self.lights)):
+                l = self.lights[i]
+                l_x, l_y = self.get_light_coord(l)
+                car_x, car_y = self.get_car_coord(self.pose)
 
-        car_x = self.pose.position.x
-        car_y = self.pose.position.y
-        car_o = self.pose.orientation
-        car_q = (car_o.x, car_o.y, car_o.z, car_o.w)
-        car_roll,car_pitch,car_yaw = tf.transformations.euler_from_quaternion(car_q)
+                if self.get_distance((l_x, l_y),(car_x, car_y)) >= 90:
+                    continue
 
-        light_closest = (float('inf'),-1, None)
-        for i in range(len(self.lights)):
-            l = self.lights[i]
-            l_x = l.pose.pose.position.x
-            l_y = l.pose.pose.position.y
-            l_o = l.pose.pose.orientation
-            l_q = (l_o.x, l_o.y, l_o.z, l_o.w)
-            l_roll, l_pitch, l_yaw = tf.transformations.euler_from_quaternion(l_q)
+                light_state = self.get_light_state(light)
+                if light_state != TrafficLight.RED:
+                    continue
 
-            light_ahead = ((l_x - car_x) * math.cos(car_yaw) + (l_y - car_y) * math.sin(car_yaw)) > 0.0
-            if not light_ahead:
-                continue
-
-            light_distance = math.sqrt((car_x - l_x)**2 + (car_y - l_y)**2)
-            if light_distance < light_closest[1]:
-                light_closest = (light_distance, self.get_closest_waypoint(l.pose.pose), i)
-
-            stop_line_positions = self.config['stop_line_positions']
-            stop_closest = (float('inf'), -1)
-            for sl in stop_line_positions:
-                stop_x = sl[0]
-                stop_y = sl[1]
-                stop_d = math.sqrt((car_x - stop_x)**2 + (car_y - stop_y)**2)
-                if stop_d < stop_closest[0]:
-                    stop_closest = (stop_d,self.get_closest_stop_waypoint(sl))
-
-        if light_closest[0] > 50:
-            return -1,TrafficLight.UNKNOWN
-
-        idx = stop_closest[1]
-        tl_state = self.get_light_state(light_closest[2])
-
-        rospy.loginfo("light state: %s", tl_state)
-        return idx, tl_state
+                light_index = self.get_closest_waypoint(light)
+                light_wp = self.waypoints[light_index]
+                
+                _,_,car_yaw = get_euler(self.pose)
+                light_is_ahead = False
+                if ((l_x - car_x) * math.cos(car_yaw) + (l_y - car_y)*math.sin(car_yaw)) > 0:
+                    light_is_ahead = True
+                if light_is_ahead:
+                    distance = self.get_distance((l_x, l_y),(car_x, car_y))
+                    if distance < light_closest:
+                        light_closest = (distance, i)
+        
+        if light_closest[1] is not None:
+            return (light_closest[1], TrafficLight.RED)
+        else:
+            return (-1, TrafficLight.UNKNOWN)
 
 if __name__ == '__main__':
     try:
