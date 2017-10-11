@@ -84,6 +84,7 @@ class WaypointUpdater(object):
                 else:
                     target_velocity = (0.1 * target_velocity + 0.9 * prev_wp_vel)
 
+                rospy.loginfo("Red Light: %s", self.red_light_ahead())
                 if self.red_light_ahead():
                     target_velocity = 0
                     
