@@ -208,10 +208,13 @@ class TLDetector(object):
         #TODO find the closest visible traffic light (if one exists)        
         light_closest = (float('inf'), -1)
         if self.pose and self.waypoints:
+            
+            car_x, car_y = self.get_car_coord(self.pose)
+            _,_,car_yaw = self.get_euler(self.pose)
+            
             for i in range(len(self.lights)):
                 light = self.lights[i]
                 l_x, l_y = self.get_light_coord(light)
-                car_x, car_y = self.get_car_coord(self.pose)
 
                 if self.get_distance((l_x, l_y),(car_x, car_y)) >= 90:
                     continue
@@ -224,13 +227,12 @@ class TLDetector(object):
                 light_index = self.get_closest_waypoint(light)
                 light_wp = self.waypoints[light_index]
                 
-                _,_,car_yaw = self.get_euler(self.pose)
                 light_is_ahead = False
-                if ((l_x - car_x) * math.cos(car_yaw) + (l_y - car_y)*math.sin(car_yaw)) > 0:
+                if ((l_x - car_x) * math.cos(car_yaw) + (l_y - car_y) * math.sin(car_yaw)) > 0:
                     light_is_ahead = True
                 if light_is_ahead:
                     distance = self.get_distance((l_x, l_y),(car_x, car_y))
-                    if distance < light_closest:
+                    if distance < light_closest[0]:
                         light_closest = (distance, i)
         
         if light_closest[1] is not None:
