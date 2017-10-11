@@ -41,7 +41,7 @@ class WaypointUpdater(object):
 
         # TODO: Add other member variables you need below
         self.waypoints = None
-        self.traffic_waypoint = None
+        self.red_idx = None
         self.pose = None
         self.max_vel = 25 * ONEMPH
         self.dt = 0.1
@@ -84,7 +84,6 @@ class WaypointUpdater(object):
                 else:
                     target_velocity = (0.1 * target_velocity + 0.9 * prev_wp_vel)
 
-                rospy.loginfo("Red Light: %s", self.red_light_ahead())
                 if self.red_light_ahead():
                     target_velocity = 0
                     
@@ -146,7 +145,7 @@ class WaypointUpdater(object):
         return tf.transformations.euler_from_quaternion(q)
 
     def red_light_ahead(self):
-        if self.traffic_waypoint is None or self.waypoints is None:
+        if self.red_idx is None or self.waypoints is None or self.pose is None:
             return False
         else:
             wps = self.waypoints
