@@ -234,7 +234,7 @@ class TLDetector(object):
                 if light_is_ahead:
                     distance = self.get_distance((lwp_x, lwp_y),(car_x, car_y))
                     if distance < light_closest[0]:
-                        light_closest = (distance, i)
+                        light_closest = (distance, light_index)
         
         if light_closest[1] is not None:
             return (light_closest[1], TrafficLight.RED)
