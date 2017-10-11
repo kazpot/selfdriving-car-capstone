@@ -155,7 +155,7 @@ class WaypointUpdater(object):
             car_x, car_y = self.get_car_coord(self.pose)
             _,_,car_yaw = self.get_euler(self.pose)
 
-            if ((red_x - car_x) * math.cos(car_yaw) + (red_y - car_y) * math.sin(car_yaw)) > 0 and d <= 35:
+            if ((red_x - car_x) * math.cos(car_yaw) + (red_y - car_y) * math.sin(car_yaw)) > 0 and d <= 50:
                 return True
             else:
                 return False

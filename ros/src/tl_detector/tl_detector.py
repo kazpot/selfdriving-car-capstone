@@ -235,7 +235,7 @@ class TLDetector(object):
                     distance = self.get_distance((lwp_x, lwp_y),(car_x, car_y))
                     if distance < light_closest[0]:
                         light_closest = (distance, light_index)
-        
+        rospy.loginfo("%s, %s", light_closest[0], light_closest[1])
         if light_closest[1] is not None:
             return (light_closest[1], TrafficLight.RED)
         else:
