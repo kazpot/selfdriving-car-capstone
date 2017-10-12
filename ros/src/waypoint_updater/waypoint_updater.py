@@ -84,9 +84,9 @@ class WaypointUpdater(object):
                 #else:
                     #target_velocity = (0.1 * target_velocity + 0.9 * prev_wp_vel)
                 if prev_wp_vel == 0:
-                    target_wp_velocity = 0.25 * self.max_vel
+                    target_wp_velocity += ONEMPH * 2
                 elif prev_wp_vel <= 0.5 * self.max_vel:
-                    target_wp_velocity = 0.5 * self.max_vel
+                    target_wp_velocity += ONEMPH * 4
                 else:
                     target_wp_velocity = self.max_vel
                 
