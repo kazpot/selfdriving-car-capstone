@@ -79,8 +79,8 @@ class WaypointUpdater(object):
                 prev_wp_vel = initial_wp_velocity if i == 0 else prev_wp_vel
                 curr_wp_vel = wps[i].twist.twist.linear.x
                 
-                if initial_wp_velocity == 0 and prev_wp_vel ==0:
-                    target_wp_velocity = 0.25 * target_wp_velocity
+                if initial_wp_velocity == 0 and prev_wp_vel == 0 and curr_wp_vel == 0:
+                    target_wp_velocity = 0.5 * target_wp_velocity
                 else:
                     target_wp_velocity = (0.1 * target_wp_velocity + 0.9 * prev_wp_vel)
                 
