@@ -84,6 +84,7 @@ class WaypointUpdater(object):
                 else:
                     target_wp_velocity = (0.1 * target_wp_velocity + 0.9 * prev_wp_vel)
                 
+                target_wp_velocity = min(target_wp_velocity, self.max_vel)
                 if self.red_light_ahead():
                     target_wp_velocity = 0
                     
@@ -155,7 +156,7 @@ class WaypointUpdater(object):
             car_x, car_y = self.get_car_coord(self.pose)
             _,_,car_yaw = self.get_euler(self.pose)
 
-            if ((red_x - car_x) * math.cos(car_yaw) + (red_y - car_y) * math.sin(car_yaw)) > 0 and d <= 37:
+            if ((red_x - car_x) * math.cos(car_yaw) + (red_y - car_y) * math.sin(car_yaw)) > 0 and d <= 50:
                 return True
             else:
                 return False
