@@ -80,11 +80,10 @@ class WaypointUpdater(object):
                 curr_wp_vel = wps[i].twist.twist.linear.x
                 
                 if initial_wp_velocity == 0 and prev_wp_vel == 0 and curr_wp_vel == 0:
-                    target_wp_velocity = 0.5 * target_wp_velocity
+                    target_wp_velocity = 0.25 * target_wp_velocity
                 else:
                     target_wp_velocity = (0.1 * target_wp_velocity + 0.9 * prev_wp_vel)
                 
-                target_wp_velocity = min(target_wp_velocity, self.max_vel)
                 if self.red_light_ahead():
                     target_wp_velocity = 0
                     
