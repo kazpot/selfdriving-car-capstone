@@ -83,16 +83,17 @@ class WaypointUpdater(object):
                     #target_velocity = 0.25 * target_velocity
                 #else:
                     #target_velocity = (0.1 * target_velocity + 0.9 * prev_wp_vel)
-                if i == 0:
+                if prev_wp_vel == 0:
                     target_wp_velocity = 0.25 * self.max_vel
-                elif i <= len(wps)/2:
+                elif prev_wp_vel <= 0.5 * self.max_vel:
                     target_wp_velocity = 0.5 * self.max_vel
                 else:
                     target_wp_velocity = self.max_vel
+                
                 if self.red_light_ahead():
                     target_wp_velocity = 0
                     
-                #prev_wp_vel = target_velocity
+                prev_wp_vel = target_wp_velocity
                 wps[i].twist.twist.linear.x = target_wp_velocity
             
             lane = Lane()
