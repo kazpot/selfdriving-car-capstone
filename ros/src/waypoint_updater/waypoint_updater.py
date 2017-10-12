@@ -73,22 +73,27 @@ class WaypointUpdater(object):
             idx_end = min(idx_begin + LOOKAHEAD_WPS, len(self.waypoints))
             wps = self.waypoints[idx_begin:idx_end]
 
-            initial_wp_velocity = wps[0].twist.twist.linear.x
-            target_velocity = self.max_vel
+            #initial_wp_velocity = wps[0].twist.twist.linear.x
+            target_wp_velocity = 0
             for i in range(len(wps)):
-                prev_wp_vel = initial_wp_velocity if i == 0 else prev_wp_vel
-                curr_wp_vel = wps[i].twist.twist.linear.x
+                #prev_wp_vel = initial_wp_velocity if i == 0 else prev_wp_vel
+                #curr_wp_vel = wps[i].twist.twist.linear.x
                 
-                if initial_wp_velocity == 0 and curr_wp_vel == 0 and prev_wp_vel ==0:
-                    target_velocity = 0.25 * target_velocity
+                #if initial_wp_velocity == 0 and prev_wp_vel ==0:
+                    #target_velocity = 0.25 * target_velocity
+                #else:
+                    #target_velocity = (0.1 * target_velocity + 0.9 * prev_wp_vel)
+                if i == 0:
+                    target_wp_velocity = 0.25 * self.max_vel
+                elif i <= len(wps)/2:
+                    target_wp_velocity = 0.5 * self.max_vel
                 else:
-                    target_velocity = (0.1 * target_velocity + 0.9 * prev_wp_vel)
-
+                    target_wp_velocity = self.max_vel
                 if self.red_light_ahead():
-                    target_velocity = 0
+                    target_wp_velocity = 0
                     
-                prev_wp_vel = target_velocity
-                wps[i].twist.twist.linear.x = target_velocity
+                #prev_wp_vel = target_velocity
+                wps[i].twist.twist.linear.x = target_wp_velocity
             
             lane = Lane()
             lane.waypoints = wps
