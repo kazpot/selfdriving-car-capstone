@@ -44,15 +44,12 @@ class WaypointUpdater(object):
         self.red_idx = None
         self.pose = None
         self.max_vel = 25 * ONEMPH
-        #self.dt = 0.1
-        #self.min_dist_ahead = self.max_vel * self.dt * 2
 
-        #rospy.Timer(rospy.Duration(self.dt), self.loop)
         self.loop()
         rospy.spin()
 
     def loop(self):
-        rate = rospy.Rate(5.0)
+        rate = rospy.Rate(3.8)
         while not rospy.is_shutdown():
             if (self.pose is not None and self.waypoints is not None):
                 car_x, car_y = self.get_car_coord(self.pose)
@@ -69,7 +66,6 @@ class WaypointUpdater(object):
                          wp_is_ahead = True
                     if wp_is_ahead:
                         dist = self.get_distance((car_x,car_y), (wp_x, wp_y))
-                        #if dist < closest_wp[0] and dist > self.min_dist_ahead:
                         if dist < closest_wp[0]:
                             closest_wp = (dist, i)
                 
@@ -83,14 +79,18 @@ class WaypointUpdater(object):
                     prev_wp_vel = initial_wp_velocity if i == 0 else prev_wp_vel
                     curr_wp_vel = wps[i].twist.twist.linear.x
                     
-                    if initial_wp_velocity == 0 and prev_wp_vel == 0 and curr_wp_vel == 0:
-                        target_wp_velocity = 0.25 * target_wp_velocity
+                    stop, d = self.red_light_ahead()
+                    if stop:
+                        if d <= 45.0:
+                            target_wp_velocity = 0
+                        elif d <= 100.0:
+                            target_wp_velocity = math.sqrt(d*0.8)
                     else:
-                        target_wp_velocity = (0.1 * target_wp_velocity + 0.9 * prev_wp_vel)
-                    
-                    if self.red_light_ahead():
-                        target_wp_velocity = 0
-                    
+                        if initial_wp_velocity == 0 and prev_wp_vel == 0 and curr_wp_vel == 0:
+                            target_wp_velocity = 10 * ONEMPH
+                        else:
+                            target_wp_velocity = (0.1 * target_wp_velocity + 0.9 * prev_wp_vel)
+
                     prev_wp_vel = target_wp_velocity
                     wps[i].twist.twist.linear.x = target_wp_velocity
                 
@@ -151,7 +151,7 @@ class WaypointUpdater(object):
 
     def red_light_ahead(self):
         if self.red_idx is None or self.waypoints is None or self.pose is None:
-            return False
+            return (False, -1)
         else:
             wps = self.waypoints
             red_wp = wps[self.red_idx]
@@ -160,10 +160,10 @@ class WaypointUpdater(object):
             car_x, car_y = self.get_car_coord(self.pose)
             _,_,car_yaw = self.get_euler(self.pose)
 
-            if ((red_x - car_x) * math.cos(car_yaw) + (red_y - car_y) * math.sin(car_yaw)) > 0 and d <= 50:
-                return True
+            if ((red_x - car_x) * math.cos(car_yaw) + (red_y - car_y) * math.sin(car_yaw)) > 0:
+                return (True, d)
             else:
-                return False
+                return (False, -1)
 
 
 if __name__ == '__main__':

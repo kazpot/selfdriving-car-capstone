@@ -216,7 +216,7 @@ class TLDetector(object):
                 light = self.lights[i]
                 l_x, l_y = self.get_light_coord(light)
 
-                if self.get_distance((l_x, l_y),(car_x, car_y)) >= 90:
+                if self.get_distance((l_x, l_y),(car_x, car_y)) > 100:
                     continue
 
                 light_state = self.get_light_state(light)
