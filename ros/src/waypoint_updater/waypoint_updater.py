@@ -87,7 +87,7 @@ class WaypointUpdater(object):
                             target_wp_velocity = math.sqrt(d*0.8)
                     else:
                         if initial_wp_velocity == 0 and prev_wp_vel == 0 and curr_wp_vel == 0:
-                            target_wp_velocity = 10 * ONEMPH
+                            target_wp_velocity = 3 * ONEMPH
                         else:
                             target_wp_velocity = (0.1 * target_wp_velocity + 0.9 * prev_wp_vel)
 
